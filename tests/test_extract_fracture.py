@@ -28,9 +28,9 @@ def test_extract_fracture():
 
     end = time.perf_counter()
 
+    assert frac_mesh.vertices.shape[0] <= meshes[k].vertices.shape[0]
+    assert frac_mesh.faces.shape[0] <= meshes[k].faces.shape[0]
+
     print(f"It took {end - start:.4f}s to extract the fracture surface of the largest fragment amoung the loaded meshes.")
     print(f"#Removed extra faces: {meshes[k].faces.shape[0] - frac_mesh.faces.shape[0]}, #Remaining faces: {frac_mesh.faces.shape[0]}")
     print(f"#Removed extra vertices: {meshes[k].vertices.shape[0] - frac_mesh.vertices.shape[0]}, #Remaining vertices: {frac_mesh.vertices.shape[0]}")
-
-    assert frac_mesh.vertices.shape[0] <= meshes[k].vertices.shape[0]
-    assert frac_mesh.faces.shape[0] <= meshes[k].faces.shape[0]

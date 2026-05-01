@@ -27,9 +27,9 @@ def test_extract_shell():
 
     end = time.perf_counter()
 
+    assert shell.vertices.shape[0] <= meshes[k].vertices.shape[0]
+    assert shell.faces.shape[0] <= meshes[k].faces.shape[0]
+
     print(f"It took {end - start:.4f}s to extract the shell of the smallest fragment amoung the loaded meshes.")
     print(f"#Removed extra faces: {meshes[k].faces.shape[0] - shell.faces.shape[0]}, #Remaining faces: {shell.faces.shape[0]}")
     print(f"#Removed extra vertices: {meshes[k].vertices.shape[0] - shell.vertices.shape[0]}, #Remaining vertices: {shell.vertices.shape[0]}")
-
-    assert shell.vertices.shape[0] <= meshes[k].vertices.shape[0]
-    assert shell.faces.shape[0] <= meshes[k].faces.shape[0]
