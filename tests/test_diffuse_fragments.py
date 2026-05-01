@@ -2,6 +2,7 @@ import time
 import numpy as np
 
 from src.utils import load_random_scene, diffuse_fragments
+
 from helpers import get_random_directory
 
 

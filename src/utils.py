@@ -51,7 +51,7 @@ def load_random_scene(mesh_dir_full_path: str) -> list:
     
     return meshes
 
-def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(1,1,1)) -> list:
+def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(.75,.75,.75)) -> list:
     """
     Applies random SE(3) transformations to fragments.
     Ensures fragments are 'scattered' without excessive internal blending.
@@ -68,7 +68,7 @@ def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(1,1,1)) -> lis
         # Random Translation (Wiener-like step)
         # We add an 'index-based' offset to push fragments in different directions
         translation = np.random.normal(mean_vec, var_vec, size=3) 
-        translation += (np.random.standard_normal(3) * max_dim * 1.5) # Push out
+        translation += (np.random.standard_normal(3) * max_dim * .5) # Push out
         
         # Apply transformation matrix
         matrix = np.eye(4)
