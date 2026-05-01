@@ -78,19 +78,3 @@ def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(.75,.75,.75)) 
         
         diffused_fragments.append(m)
     return diffused_fragments
-
-def average_face_normals(mesh, target_type='node'):
-    """
-    Calculates averaged face normals. 
-    If target_type='node': Average of faces sharing a vertex.
-    If target_type='edge': Average of faces sharing an edge.
-    """
-    if target_type == 'node':
-        return mesh.vertex_normals # Trimesh does this efficiently
-    else:
-        # Custom logic for edge-face averaging
-        face_normals = mesh.face_normals
-        edge_faces = mesh.edge_faces # Indices of faces for each edge
-        # Handle edges with only 1 face (boundary) or 2 faces (internal/manifold)
-        avg_normals = np.array([face_normals[faces[faces != -1]].mean(axis=0) for faces in edge_faces])
-        return avg_normals
