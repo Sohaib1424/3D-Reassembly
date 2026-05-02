@@ -1,5 +1,4 @@
 import time
-import random
 
 from src.utils import load_random_scene
 
@@ -7,7 +6,6 @@ from helpers import get_random_directory
 
 
 def test_load_random_scene():
-    random.seed(42)
 
     random_dir = get_random_directory()
 

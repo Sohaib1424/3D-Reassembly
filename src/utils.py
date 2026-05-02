@@ -46,7 +46,6 @@ def load_random_scene(mesh_dir_full_path: str) -> list:
         nv, nf, _, _ = igl.remove_unreferenced(ui,ffi) # returns: nv, nf, IM, J
         
         mesh = trimesh.Trimesh(nv, nf)
-        # mesh = mesh.subdivide()
         meshes.append(mesh)
     
     return meshes
