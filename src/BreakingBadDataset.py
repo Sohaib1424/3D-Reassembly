@@ -2,8 +2,14 @@ import os
 import torch
 import trimesh
 import numpy as np
+from typing import List, Dict
+from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from gpytoolbox.copyleft import mesh_boolean
+
+from helpers import get_random_directory
+
+from src.utils import load_random_scene, diffuse_fragments
 
 
 def get_features(mesh: trimesh.base.Trimesh)-> Data:
@@ -71,6 +77,87 @@ def get_features(mesh: trimesh.base.Trimesh)-> Data:
     )
 
 
-def BreakingBadDataset():
+class BreakingBadDataset(Dataset):
+    def __init__(
+        self,
+        root_dir: str = "data",
+        return_meshes: bool = False,
+        num_scenes: int = 4
+    ):
+        self.root_dir = root_dir
+        self.return_meshes = return_meshes
+        self.num_scenes = num_scenes
 
-    pass
+    def __len__(self) -> int:
+        return 10000
+
+    def _merge_data_list(self, data_list: List[Data]) -> Data:
+
+        node_offset = 0
+        edge_offset = 0
+        
+        all_x = []
+        all_edge_index = []
+        all_edge_attr = []
+        all_inc_index = []
+        all_batch = [] # Added for PyG compatibility
+        
+        for i, data in enumerate(data_list):
+            num_nodes = data.x.size(0)
+            num_edges = data.edge_attr.size(0)
+            
+            # Shift Adjacency
+            all_edge_index.append(data.edge_index + node_offset)
+            
+            # Shift Incidence (Nodes in Row 0, Edge IDs in Row 1)
+            shifted_inc = data.inc_index.clone()
+            shifted_inc[0] += node_offset
+            shifted_inc[1] += edge_offset
+            all_inc_index.append(shifted_inc)
+            
+            # Track which scene/fragment each node belongs to
+            all_batch.append(torch.full((num_nodes,), i, dtype=torch.long))
+            
+            all_x.append(data.x)
+            all_edge_attr.append(data.edge_attr)
+            
+            node_offset += num_nodes
+            edge_offset += num_edges
+
+        return Data(
+            x=torch.cat(all_x, dim=0).contiguous(),
+            edge_index=torch.cat(all_edge_index, dim=1).contiguous(),
+            edge_attr=torch.cat(all_edge_attr, dim=0).contiguous(),
+            inc_index=torch.cat(all_inc_index, dim=1).contiguous(),
+            batch=torch.cat(all_batch, dim=0).contiguous(),
+            num_nodes=node_offset
+        )
+
+    def __getitem__(self, idx: int) -> Dict:
+        """
+        Returns a single Data object containing num_scenes merged scenarios.
+        """
+        all_scene_graphs = []
+        all_scene_meshes = []
+
+        for _ in range(self.num_scenes):
+            # Using your provided helpers: get_random_directory and load_random_scene
+            scene_dir = get_random_directory(self.root_dir)
+            fragment_meshes = load_random_scene(str(scene_dir))
+            
+            # Extract features (6D Nodes, 10D Edges)
+            frag_data_list = [get_features(m) for m in fragment_meshes]
+            
+            # Merge fragments into a Scene Graph
+            all_scene_graphs.append(self._merge_data_list(frag_data_list))
+            
+            if self.return_meshes:
+                all_scene_meshes.append(fragment_meshes)
+
+        # Merge all scenes into the Global Batch Graph
+        global_batch_graph = self._merge_data_list(all_scene_graphs)
+
+        return {
+            "graph": global_batch_graph,
+            "meshes": all_scene_meshes if self.return_meshes else None
+        }

@@ -2,13 +2,13 @@ import random
 from pathlib import Path
 
 
-paths = [
-    {"path": "data/everyday_compressed/everyday_compressed", "depth": 1},
-    {"path": "data/artifact_compressed/artifact_compressed", "depth": 0},
+def get_random_directory(root:str = "data") -> str:
+
+    paths = [
+    {"path": f"{root}/everyday_compressed/everyday_compressed", "depth": 1},
+    {"path": f"{root}/artifact_compressed/artifact_compressed", "depth": 0},
 ]
 
-
-def get_random_directory():
     random_path = random.choice(paths)
     base = Path(random_path["path"])
 
