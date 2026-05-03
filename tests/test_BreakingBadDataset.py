@@ -64,5 +64,3 @@ def test_BreakingBadDataset():
     print(f"[✔] Total Edges: {total_num_edges}")
     print("[✔] Incidence Matrix Shifting: SUCCESS")
     print(f"[✔] It took {end - start:.4f}s for the whole test to end.")
-
-test_BreakingBadDataset()
