@@ -82,11 +82,13 @@ class BreakingBadDataset(Dataset):
         self,
         root_dir: str = "data",
         return_meshes: bool = False,
-        num_scenes: int = 4
+        num_scenes: int = 4,
+        diffuse: bool = False
     ):
         self.root_dir = root_dir
         self.return_meshes = return_meshes
         self.num_scenes = num_scenes
+        self.diffuse = diffuse
 
     def __len__(self) -> int:
         return 10000
@@ -139,25 +141,35 @@ class BreakingBadDataset(Dataset):
         """
         all_scene_graphs = []
         all_scene_meshes = []
+        all_scene_diff_graphs = []
+        all_scene_diff_meshes = []
 
         for _ in range(self.num_scenes):
             # Using your provided helpers: get_random_directory and load_random_scene
             scene_dir = get_random_directory(self.root_dir)
             fragment_meshes = load_random_scene(str(scene_dir))
+            diffused_fragments = diffuse_fragments(fragment_meshes)
             
             # Extract features (6D Nodes, 10D Edges)
             frag_data_list = [get_features(m) for m in fragment_meshes]
-            
+            diff_data_list = [get_features(m) for m in diffused_fragments]
+
             # Merge fragments into a Scene Graph
             all_scene_graphs.append(self._merge_data_list(frag_data_list))
+            all_scene_diff_graphs.append(self._merge_data_list(diff_data_list))
             
             if self.return_meshes:
                 all_scene_meshes.append(fragment_meshes)
+                all_scene_diff_meshes.append(diffused_fragments)
 
         # Merge all scenes into the Global Batch Graph
         global_batch_graph = self._merge_data_list(all_scene_graphs)
+        global_batch_diff_graph = self._merge_data_list(all_scene_diff_graphs)
+
 
         return {
             "graph": global_batch_graph,
-            "meshes": all_scene_meshes if self.return_meshes else None
+            "meshes": all_scene_meshes if self.return_meshes else None,
+            "diffused_graph": global_batch_diff_graph if self.diffuse else None,
+            "diffused_meshes": all_scene_diff_meshes if self.return_meshes and self.diffuse else None,
         }
