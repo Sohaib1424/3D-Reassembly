@@ -17,7 +17,7 @@ def test_diffuse_fragments():
 
     end = time.perf_counter()
 
-    # the 'n'th fragment, # the 'k'the vertex
+    # The 'n'th fragment, # the 'k'the vertex
     n, k = 0, -1
     assert len(loaded_mesh_fragments) == len(diffused_mesh_fragments)
     assert loaded_mesh_fragments[n].vertices.shape == diffused_mesh_fragments[n].vertices.shape

@@ -56,7 +56,7 @@ def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(.75,.75,.75)) 
     Ensures fragments are 'scattered' without excessive internal blending.
     """
     diffused_fragments = []
-    # Calculate a global 'scale' to prevent overlap
+    # Calculating a global 'scale' to prevent overlap
     max_dim = max([f.extents.max() for f in fragments])
     
     for i, mesh in enumerate(fragments):
@@ -69,7 +69,7 @@ def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(.75,.75,.75)) 
         translation = np.random.normal(mean_vec, var_vec, size=3) 
         translation += (np.random.standard_normal(3) * max_dim * .5) # Push out
         
-        # Apply transformation matrix
+        # Applying transformation matrix
         matrix = np.eye(4)
         matrix[:3, :3] = rotation
         matrix[:3, 3] = translation

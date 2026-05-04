@@ -1,4 +1,3 @@
-# from tqdm import tqdm
 import trimesh
 import numpy as np
 from scipy.sparse import lil_matrix

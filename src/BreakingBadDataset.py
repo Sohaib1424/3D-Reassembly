@@ -33,7 +33,7 @@ def get_features(mesh: trimesh.base.Trimesh)-> Data:
     adj_faces = mesh.face_adjacency # face_adjacency: the two faces sharing those edges
     face_normals = torch.from_numpy(mesh.face_normals).float()
 
-    # Create the lookup map for inner edges
+    # Creating the lookup map for inner edges
     edge_to_faces = {tuple(sorted(edge)): faces for edge, faces in zip(adj_edges_v, adj_faces)}
 
     edge_feats = []
@@ -59,7 +59,7 @@ def get_features(mesh: trimesh.base.Trimesh)-> Data:
 
     num_edges = edge_index.size(1)
     
-    # Transpose edge_index from (2, E) to (E, 2) before flattening
+    # Transposing edge_index from (2, E) to (E, 2) before flattening
     # Example: [e0_v0, e0_v1, e1_v0, e1_v1, ...]
     row = edge_index.t().reshape(-1) 
     
@@ -108,16 +108,16 @@ class BreakingBadDataset(Dataset):
             num_nodes = data.x.size(0)
             num_edges = data.edge_attr.size(0)
             
-            # Shift Adjacency
+            # Shifting Adjacency
             all_edge_index.append(data.edge_index + node_offset)
             
-            # Shift Incidence (Nodes in Row 0, Edge IDs in Row 1)
+            # Shifting Incidence (Nodes in Row 0, Edge IDs in Row 1)
             shifted_inc = data.inc_index.clone()
             shifted_inc[0] += node_offset
             shifted_inc[1] += edge_offset
             all_inc_index.append(shifted_inc)
             
-            # Track which scene/fragment each node belongs to
+            # Tracking which scene/fragment each node belongs to
             all_batch.append(torch.full((num_nodes,), i, dtype=torch.long))
             
             all_x.append(data.x)
@@ -145,26 +145,28 @@ class BreakingBadDataset(Dataset):
         all_scene_diff_meshes = []
 
         for _ in range(self.num_scenes):
-            # Using your provided helpers: get_random_directory and load_random_scene
             scene_dir = get_random_directory(self.root_dir)
             fragment_meshes = load_random_scene(str(scene_dir))
-            diffused_fragments = diffuse_fragments(fragment_meshes)
-            
-            # Extract features (6D Nodes, 10D Edges)
-            frag_data_list = [get_features(m) for m in fragment_meshes]
-            diff_data_list = [get_features(m) for m in diffused_fragments]
 
-            # Merge fragments into a Scene Graph
+            # Extracting features (6D Nodes, 10D Edges)
+            frag_data_list = [get_features(m) for m in fragment_meshes]
+            # Merging fragments into a Scene Graph
             all_scene_graphs.append(self._merge_data_list(frag_data_list))
-            all_scene_diff_graphs.append(self._merge_data_list(diff_data_list))
+            
+            if self.diffuse: # Doing the same thing but for diffused fragments
+                diffused_fragments = diffuse_fragments(fragment_meshes)
+                diff_data_list = [get_features(m) for m in diffused_fragments]
+                all_scene_diff_graphs.append(self._merge_data_list(diff_data_list))
             
             if self.return_meshes:
                 all_scene_meshes.append(fragment_meshes)
-                all_scene_diff_meshes.append(diffused_fragments)
+                if self.diffuse:
+                    all_scene_diff_meshes.append(diffused_fragments)
 
-        # Merge all scenes into the Global Batch Graph
+        # Merging all scenes into the Global Batch Graph
         global_batch_graph = self._merge_data_list(all_scene_graphs)
-        global_batch_diff_graph = self._merge_data_list(all_scene_diff_graphs)
+        if self.diffuse: # Doing the same for diffused Graph
+            global_batch_diff_graph = self._merge_data_list(all_scene_diff_graphs)
 
 
         return {
