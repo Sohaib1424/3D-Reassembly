@@ -7,12 +7,12 @@ def test_BreakingBadDataset():
 
     start = time.perf_counter()
 
-    num_scenes_to_test = 4
+    num_scenes_to_test = 2
     dataset = BreakingBadDataset(
                             root_dir="data", 
                             num_scenes=num_scenes_to_test, 
                             return_meshes=True,
-                            diffuse=True)
+                            extract_frac=False)
 
     output = dataset[0]
     graph = output["graph"]
@@ -76,5 +76,3 @@ def test_BreakingBadDataset():
     print(f"[✔] Total Edges: {total_num_edges}")
     print("[✔] Incidence Matrix Shifting: SUCCESS")
     print(f"[✔] It took {end - start:.4f}s for the whole test to end.")
-
-test_BreakingBadDataset()

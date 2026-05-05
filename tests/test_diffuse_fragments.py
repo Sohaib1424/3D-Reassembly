@@ -13,7 +13,7 @@ def test_diffuse_fragments():
     start = time.perf_counter()
     
     loaded_mesh_fragments = load_random_scene(str(random_dir))
-    diffused_mesh_fragments = diffuse_fragments(loaded_mesh_fragments)
+    diffused_mesh_fragments, _ = diffuse_fragments(loaded_mesh_fragments)
 
     end = time.perf_counter()
 
