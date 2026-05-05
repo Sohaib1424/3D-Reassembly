@@ -10,7 +10,7 @@ def Visualize_Diffused():
     random_dir = get_random_directory()
 
     meshes = load_random_scene(str(random_dir))
-    diffused_meshes = diffuse_fragments(meshes)
+    diffused_meshes, _ = diffuse_fragments(meshes)
     scene = trimesh.Scene()
 
     for mesh in diffused_meshes:
