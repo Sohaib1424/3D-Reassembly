@@ -50,12 +50,18 @@ def load_random_scene(mesh_dir_full_path: str) -> list:
     
     return meshes
 
-def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(.75,.75,.75)) -> list:
+def diffuse_fragments(
+            fragments: list, 
+            mean_vec=(0,0,0), 
+            var_vec=(.75,.75,.75)
+            ) -> (list, list):
     """
     Applies random SE(3) transformations to fragments.
     Ensures fragments are 'scattered' without excessive internal blending.
     """
     diffused_fragments = []
+    t_matrices = []
+    
     # Calculating a global 'scale' to prevent overlap
     max_dim = max([f.extents.max() for f in fragments])
     
@@ -76,4 +82,6 @@ def diffuse_fragments(fragments: list, mean_vec=(0,0,0), var_vec=(.75,.75,.75)) 
         m.apply_transform(matrix)
         
         diffused_fragments.append(m)
-    return diffused_fragments
+        t_matrices.append(matrix)
+
+    return diffused_fragments, t_matrices
