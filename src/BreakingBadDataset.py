@@ -10,7 +10,7 @@ from gpytoolbox.copyleft import mesh_boolean
 from helpers import get_random_directory
 
 from src.utils import load_random_scene, diffuse_fragments
-
+from src.geometry import extract_fractures
 
 def get_features(mesh: trimesh.base.Trimesh)-> Data:
     """
@@ -83,12 +83,14 @@ class BreakingBadDataset(Dataset):
         root_dir: str = "data",
         return_meshes: bool = False,
         num_scenes: int = 4,
-        diffuse: bool = False
+        diffuse: bool = True,
+        extract_frac: bool = True
     ):
         self.root_dir = root_dir
         self.return_meshes = return_meshes
         self.num_scenes = num_scenes
         self.diffuse = diffuse
+        self.extract_frac = extract_frac
 
     def __len__(self) -> int:
         return 10000
@@ -141,8 +143,17 @@ class BreakingBadDataset(Dataset):
         """
         all_scene_graphs = []
         all_scene_meshes = []
+
         all_scene_diff_graphs = []
         all_scene_diff_meshes = []
+
+        all_scene_graphs_frac = []
+        all_scene_meshes_frac = []
+
+        all_scene_diff_graphs_frac = []
+        all_scene_diff_meshes_frac = []
+
+        transformation_matrices = []
 
         for _ in range(self.num_scenes):
             scene_dir = get_random_directory(self.root_dir)
@@ -152,26 +163,49 @@ class BreakingBadDataset(Dataset):
             frag_data_list = [get_features(m) for m in fragment_meshes]
             # Merging fragments into a Scene Graph
             all_scene_graphs.append(self._merge_data_list(frag_data_list))
+
+            if self.extract_frac: # Doing the same thing but for extracted fracture surfaces of fragments
+                frac_meshes = [extract_fractures(m) for m in fragment_meshes]
+                frac_data_list = [get_features(m) for m in frac_meshes]
+                all_scene_graphs_frac.append(self._merge_data_list(frac_data_list))
             
             if self.diffuse: # Doing the same thing but for diffused fragments
-                diffused_fragments = diffuse_fragments(fragment_meshes)
+                diffused_fragments, t_matrices = diffuse_fragments(fragment_meshes)
                 diff_data_list = [get_features(m) for m in diffused_fragments]
                 all_scene_diff_graphs.append(self._merge_data_list(diff_data_list))
+                transformation_matrices.append(t_matrices)
+
+                if self.extract_frac:
+                    diff_frac = [m.copy().apply_transform(t_matrices[i]) for i, m in enumerate(frac_meshes)]
+                    diff_frac_data_list = [get_features(m) for m in diff_frac]
+                    all_scene_diff_graphs_frac.append(self._merge_data_list(diff_frac_data_list))
             
             if self.return_meshes:
                 all_scene_meshes.append(fragment_meshes)
                 if self.diffuse:
                     all_scene_diff_meshes.append(diffused_fragments)
+                if self.extract_frac:
+                    all_scene_meshes_frac.append(frac_meshes)
+                    if self.diffuse:
+                        all_scene_diff_meshes_frac.append(diff_frac)
 
         # Merging all scenes into the Global Batch Graph
         global_batch_graph = self._merge_data_list(all_scene_graphs)
         if self.diffuse: # Doing the same for diffused Graph
             global_batch_diff_graph = self._merge_data_list(all_scene_diff_graphs)
+            
+            if self.extract_frac:
+                 global_batch_frac_graph = self._merge_data_list(all_scene_graphs_frac)
+                 global_batch_diff_frac_graph = self._merge_data_list(all_scene_diff_graphs_frac)
 
 
         return {
+            "num_scenes": self.num_scenes,
             "graph": global_batch_graph,
             "meshes": all_scene_meshes if self.return_meshes else None,
             "diffused_graph": global_batch_diff_graph if self.diffuse else None,
             "diffused_meshes": all_scene_diff_meshes if self.return_meshes and self.diffuse else None,
+            "frac_graph": global_batch_frac_graph if self.extract_frac else None,
+            "diff_frac_graph": global_batch_diff_frac_graph if self.extract_frac and self.diffuse else None,
+            "t_matrices": transformation_matrices if self.diffuse else None
         }
