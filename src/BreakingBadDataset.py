@@ -4,7 +4,7 @@ import trimesh
 import numpy as np
 from typing import List, Dict
 from torch.utils.data import Dataset
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 from gpytoolbox.copyleft import mesh_boolean
 
 from helpers import get_random_directory
@@ -193,11 +193,14 @@ class BreakingBadDataset(Dataset):
         global_batch_graph = self._merge_data_list(all_scene_graphs)
         if self.diffuse: # Doing the same for diffused Graph
             global_batch_diff_graph = self._merge_data_list(all_scene_diff_graphs)
+            flattened_matrices = [torch.from_numpy(m).float() for scene_m in transformation_matrices for m in scene_m]
+            t_matrices_tensor = torch.stack(flattened_matrices) # Shape: (Total_Num_Frags, 4, 4)
             
             if self.extract_frac:
                  global_batch_frac_graph = self._merge_data_list(all_scene_graphs_frac)
                  global_batch_diff_frac_graph = self._merge_data_list(all_scene_diff_graphs_frac)
-
+        else:
+            t_matrices_tensor = None
 
         return {
             "num_scenes": self.num_scenes,
@@ -207,5 +210,46 @@ class BreakingBadDataset(Dataset):
             "diffused_meshes": all_scene_diff_meshes if self.return_meshes and self.diffuse else None,
             "frac_graph": global_batch_frac_graph if self.extract_frac else None,
             "diff_frac_graph": global_batch_diff_frac_graph if self.extract_frac and self.diffuse else None,
-            "t_matrices": transformation_matrices if self.diffuse else None
+            "t_matrices": t_matrices_tensor
         }
+
+
+def breaking_bad_collate_fn(batch_list):
+    """
+    Since BreakingBadDataset.__getitem__ already returns a merged global graph,
+    this collator simply extracts it from the list and ensures tensors are 
+    properly formatted for the GPU.
+    """
+    if len(batch_list) == 1:
+        return batch_list[0]
+
+    graphs = [item['graph'] for item in batch_list]
+    diff_graphs = [item['diffused_graph'] for item in batch_list if item['diffused_graph'] is not None]
+    frac_graphs = [item['frac_graph'] for item in batch_list if item['frac_graph'] is not None]
+    diff_frac_graphs = [item['diff_frac_graph'] for item in batch_list if item['diff_frac_graph'] is not None]
+    
+    t_mats = [item['t_matrices'] for item in batch_list if item['t_matrices'] is not None]
+
+    return {
+        "graph": Batch.from_data_list(graphs),
+        "diffused_graph": Batch.from_data_list(diff_graphs) if diff_graphs else None,
+        "frac_graph": Batch.from_data_list(frac_graphs) if frac_graphs else None,
+        "diff_frac_graph": Batch.from_data_list(diff_frac_graphs) if diff_frac_graphs else None,
+        "t_matrices": torch.cat(t_mats, dim=0) if t_mats else None,
+        "num_scenes": sum(item['num_scenes'] for item in batch_list)
+    }
+
+
+# from torch.utils.data import DataLoader
+
+# dataset = BreakingBadDataset(num_scenes=4, diffuse=True, extract_frac=True)
+
+# dataloader = DataLoader(
+#     dataset, 
+#     batch_size=1,  # Since 1 item already contains 'num_scenes' scenes
+#     num_workers=4, # Parallel CPU processing
+#     shuffle = False,
+#     collate_fn=breaking_bad_collate_fn,
+#     pin_memory=True, # Speeds up transfer to GPU
+#     prefetch_factor=1
+# )
